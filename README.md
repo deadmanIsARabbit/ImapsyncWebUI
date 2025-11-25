@@ -1,5 +1,5 @@
 # Imapsync with WebUI
-
+(forked from [mrickl/ImapsyncWebUI](https://github.com/mrickl/ImapsyncWebUI))
 
 ## German
 Dies ist das Repostiory für das Docker Container "Imapsyncwithwebui"
@@ -24,7 +24,10 @@ The web server port inside the container is port 80.
 Installtion of the container: 
 
 ## Installation
-> docker run -d --name imapsync -p 80:80 mrickl/imapsyncwithwebui
+### Build
+> docker build --tag 'deadmanIsARabbit/imapsyncwithwebui' . 
+### Run
+> docker run -d --name imapsync -p 80:80 deadmanIsARabbit/imapsyncwithwebui
 
 ## Information
 
