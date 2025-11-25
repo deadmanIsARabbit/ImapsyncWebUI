@@ -4,11 +4,10 @@
 
 #Documentation cooming Soon
 
-FROM debian:buster
+FROM debian:stable
 
-LABEL   maintainer="Marcel Rickl <mail@marcelrickl.de" \
-        description="Imapsync with WebUI" \
-        #documentation="https://marcelrickl.de/docker/imapsyncwithwebui.html" 
+LABEL   maintainer="deadmanIsARabbit" \
+        description="Imapsync with WebUI"
 
 RUN set -xe                 && \
   apt-get update            && \
@@ -44,11 +43,13 @@ RUN set -xe                 && \
   cpanminus                    \
   wget                         \
   curl                         \
-  apache2
+  lighttpd
 
-ENV APACHE_RUN_USER www-data
-ENV APACHE_RUN_GROUP www-data
-ENV APACHE_LOG_DIR /var/www/apache2ctl
+ENV LIGHTHTTPD_RUN_USER www-data
+ENV LIGHTHTTPD_RUN_GROUP www-data
+
+RUN lighty-enable-mod cgi
+RUN service lighttpd force-reload
 
 RUN mkdir -p /usr/lib/cgi-bin
 RUN rm -f /var/www/html/index.html
@@ -61,13 +62,9 @@ RUN chmod +x /usr/lib/cgi-bin/imapsync
 COPY html /var/www/html
 RUN ln -s /var/www/html/imapsync_form_extra.html /var/www/html/index.html
 
-#copy apache conf file
-COPY apache.conf /etc/apache2/sites-available/000-default.conf
-
-RUN a2enmod cgi
-
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT [ "entrypoint.sh"]
+#ENTRYPOINT [ "entrypoint.sh"]
 EXPOSE 80
+CMD ["lighttpd", "-D", "-f", "etc/lighttpd/lighttpd.conf"]
