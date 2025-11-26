@@ -9,40 +9,47 @@ FROM debian:stable
 LABEL   maintainer="deadmanIsARabbit" \
         description="Imapsync with WebUI"
 
-RUN set -xe                 && \
-  apt-get update            && \
-  apt-get install -y           \
-  libauthen-ntlm-perl          \
-  libcgi-pm-perl               \
-  libcrypt-openssl-rsa-perl    \
-  libdata-uniqid-perl          \
-  libencode-imaputf7-perl      \
-  libfile-copy-recursive-perl  \
-  libfile-tail-perl            \
-  libio-socket-inet6-perl      \
-  libio-socket-ssl-perl        \
-  libio-tee-perl               \
-  libhtml-parser-perl          \
-  libjson-webtoken-perl        \
-  libmail-imapclient-perl      \
-  libparse-recdescent-perl     \
-  libmodule-scandeps-perl      \
-  libreadonly-perl             \
-  libregexp-common-perl        \
-  libsys-meminfo-perl          \
-  libterm-readkey-perl         \
-  libtest-mockobject-perl      \
-  libtest-pod-perl             \
-  libunicode-string-perl       \
-  liburi-perl                  \
-  libwww-perl                  \
-  libtest-nowarnings-perl      \
-  libtest-deep-perl            \
-  libtest-warn-perl            \
-  make                         \
-  cpanminus                    \
-  wget                         \
-  curl                         \
+
+RUN sed -i 's/Components: main/Components: main contrib non-free-firmware non-free/g' /etc/apt/sources.list.d/debian.sources 
+
+RUN set -xe &&                  \
+  apt-get update &&             \
+  apt-get install -y            \
+  libauthen-ntlm-perl           \
+  libcgi-pm-perl                \
+  libcrypt-openssl-rsa-perl     \
+  libdata-uniqid-perl           \
+  libencode-imaputf7-perl       \
+  libfile-copy-recursive-perl   \
+  libfile-tail-perl             \
+  libhttp-daemon-perl           \
+  libhttp-daemon-ssl-perl       \
+  libhttp-message-perl          \
+  libio-socket-inet6-perl       \
+  libio-socket-ssl-perl         \
+  libio-tee-perl                \
+  libhtml-parser-perl           \
+  libjson-webtoken-perl         \
+  libmail-imapclient-perl       \
+  libmodule-scandeps-perl       \
+  libnet-server-perl            \
+  libnet-dns-perl               \
+  libparse-recdescent-perl      \
+  libproc-processtable-perl     \
+  libreadonly-perl              \
+  libregexp-common-perl         \
+  libsys-meminfo-perl           \
+  libterm-readkey-perl          \
+  libtest-mockobject-perl       \
+  libunicode-string-perl        \
+  liburi-perl                   \
+  libwww-perl                   \
+  make                          \
+  time                          \
+  cpanminus                     \
+  wget                          \
+  curl                          \
+  procps                        \
   lighttpd
 
 ENV LIGHTHTTPD_RUN_USER www-data
@@ -62,9 +69,5 @@ RUN chmod +x /usr/lib/cgi-bin/imapsync
 COPY html /var/www/html
 RUN ln -s /var/www/html/imapsync_form_extra.html /var/www/html/index.html
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
-#ENTRYPOINT [ "entrypoint.sh"]
 EXPOSE 80
 CMD ["lighttpd", "-D", "-f", "etc/lighttpd/lighttpd.conf"]
