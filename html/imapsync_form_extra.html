@@ -15,9 +15,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-        crossorigin="anonymous"></script>
 
     <link rel="stylesheet" href="imapsync_form.css">
     <link rel="license" href="https://imapsync.lamiral.info/NOLIMIT">
@@ -44,7 +41,7 @@
         </div>
     </div>
 
-    <div class="container-fluid">
+    <div class="container">
         <div class="row">
             <div class="text-center">
                 <a href="https://imapsync.lamiral.info/">
@@ -58,14 +55,15 @@
         <div class="row mb-3">
             <div class="col">
                 <h1 class="text-center">Imapsync online</h1>
-                <p class="text-center"> <strong>Copy</strong>/synchronize a <strong>complete</strong> mailbox to another,
+                <p class="text-center"> <strong>Copy</strong>/synchronize a <strong>complete</strong> mailbox to
+                    another,
                     without <strong>duplicates!</strong></p>
             </div>
         </div>
 
         <form id="form" action="/cgi-bin/imapsync" method="post" autocomplete="on">
-            <div id="form_row" class="row">
-                <div id="account1" class="col col-md-5 order-0">
+            <div id="form_row" class="row h-100">
+                <div id="account1" class="col col-md-5 order-0 py-3">
                     <fieldset>
                         <legend class="text-center fs-2 text-light">IMAP source mailbox</legend>
 
@@ -108,11 +106,13 @@
                         </div>
 
                         <div class="form-group form-check collapse extra_param">
-                            <input class="form-check-input" data-toggle="tooltip" data-placement="bottom" title="Be careful with this option" type="checkbox" id="delete1" name="delete1">
-                            <label class="form-check-label text-light" for="delete1">Move sync. Deletes messages on source
+                            <input class="form-check-input" data-toggle="tooltip" data-placement="bottom"
+                                title="Be careful with this option" type="checkbox" id="delete1" name="delete1">
+                            <label class="form-check-label text-light" for="delete1">Move sync. Deletes messages on
+                                source
                                 mailbox after a successful transfer.</label>
 
-                            
+
                         </div>
 
                         <div class="form-group collapse extra_param">
@@ -128,7 +128,7 @@
                     </fieldset>
                 </div>
 
-                <div id="parameters" class="col-md-2 order-2 order-lg-1 d-flex justify-content-between flex-column">
+                <div id="parameters" class="col col-md-2 order-2 order-lg-1 d-flex justify-content-between flex-column">
 
                     <div class="form-check">
                         <label class="form-check-label" for="dry">Dry run.</label>
@@ -162,8 +162,9 @@
                     </div>
 
                     <div id="button_extra_param" class="text-center scripton">
-                        <button type="button" class="btn btn-primary btn-block" data-bs-toggle="collapse" data-bs-target=".extra_param" aria-expanded="false" aria-controls="extra_param">
-                           Show / Hide extra parameters</button>
+                        <button type="button" class="btn btn-primary btn-block" data-bs-toggle="collapse"
+                            data-bs-target=".extra_param" aria-expanded="false" aria-controls="extra_param">
+                            Show / Hide extra parameters</button>
                     </div>
 
                     <div id="button_swap" class="text-center scripton">
@@ -176,7 +177,7 @@
                 </div>
 
 
-                <div id="account2" class="col-md-5 order-1 order-lg-2">
+                <div id="account2" class="col col-md-5 order-1 order-lg-2  py-3">
                     <fieldset>
                         <legend class="text-center h2 text-light">IMAP destination mailbox</legend>
 
@@ -218,7 +219,9 @@
                         </div>
                         <!-- -->
                         <div class="form-group form-check collapse extra_param">
-                            <input class="form-check-input" data-toggle="tooltip" data-placement="bottom" title="Be careful with this option" type="checkbox" id="delete2" name="delete2" tabindex="9">
+                            <input class="form-check-input" data-toggle="tooltip" data-placement="bottom"
+                                title="Be careful with this option" type="checkbox" id="delete2" name="delete2"
+                                tabindex="9">
                             <label class="form-check-label text-light" for="delete2">Strict sync. Deletes
                                 messages on destination mailbox that are not at the source mailbox. </label>
 
@@ -325,18 +328,19 @@
         </div>
 
     </div>
-
+    <div class="container overflow-y-scroll vh-25">
     <h2 class="text-center scripton">Log of imapsync run</h2>
 
-    <pre id="output" class="scripton">
-
-</pre>
+    <pre id="output" class="scripton"></pre>
 
     <a id="bottom"></a>
     <hr>
     <p class="text-center">Feel free to contact
         <strong><a href="https://imapsync.lamiral.info/#AUTHOR" target="_blank">Gilles LAMIRAL</a></strong>
     </p>
+
+    </div>
+
 
 
     <div class="container-fluid">
@@ -355,13 +359,12 @@
     </div>
 
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"
-        integrity="sha384-xBuQ/xzmlsLoJpyjoggmTEz8OWUFM0/RC5BsqQBDX2v5cMvDHcMakNTNrHIW2I5f" crossorigin="anonymous">
-        </script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
-        integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous">
-        </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
 
 
     <script src="imapsync_form.js">
