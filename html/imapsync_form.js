@@ -256,19 +256,89 @@ var extract_eta = function extract_eta(xhr) {
     var slice_log;
     var eta_str;
 
+    if (!xhr || typeof xhr.responseText !== "string") {
+        return {
+            str: "",
+            date: "?",
+            seconds_left: "?",
+            msgs_left: "?",
+            msgs_total: "?",
+            msgs_done: "?",
+            percent_done: function () { return ""; },
+            percent_left: function () { return ""; }
+        };
+    }
+
+    // wie bisher: nur den letzten Teil des Logs betrachten
     if (xhr.readyState === 4) {
         slice_length = -24000;
-    }
-    else {
+    } else {
         slice_length = -2400;
     }
-    console.log(xhr.responseText);
+
     slice_log = xhr.responseText.slice(slice_length);
-    eta_str = last_eta(slice_log);
-    // $("#tests").append( "extract_eta eta_str: " + eta_str + "\n" ) ;
-    eta_obj = decompose_eta_line(eta_str);
-    return eta_obj;
-};
+
+    // 1. Versuch: originale ETA-Zeile (ETA: ... msgs left)
+    var eta_re = /ETA:.*\n/g;
+    var all_etas = slice_log.match(eta_re);
+    if (all_etas && all_etas.length) {
+        eta_str = all_etas[all_etas.length - 1];
+        eta_obj = decompose_eta_line(eta_str);
+        if (eta_obj && eta_obj.str && eta_obj.str.length) {
+            return eta_obj;
+        }
+    }
+
+    // 2. Fallback: nur "NNN/TTT msgs left" ohne strengen ETA-Header
+    var msgs_re = /(\d+)\s*\/\s*(\d+)\s+msgs\s+left/g;
+    var m;
+    var last = null;
+    while ((m = msgs_re.exec(slice_log)) !== null) {
+        last = m;
+    }
+
+    if (last) {
+        var left  = parseInt(last[1], 10);
+        var total = parseInt(last[2], 10);
+        if (!isFinite(left) || !isFinite(total) || total === 0) {
+            // zur Sicherheit: zurück auf "unknown"
+        } else {
+            eta_obj = {
+                // künstliche ETA-String-Repräsentation
+                str: "ETA: ? ? s " + left + "/" + total + " msgs left\n",
+                date: "?",
+                seconds_left: "?",
+                msgs_left: left,
+                msgs_total: total,
+                msgs_done: function () {
+                    return (eta_obj.msgs_total - eta_obj.msgs_left);
+                },
+                percent_done: function () {
+                    var percent = (eta_obj.msgs_total - eta_obj.msgs_left) /
+                                  eta_obj.msgs_total * 100;
+                    return percent.toFixed(2);
+                },
+                percent_left: function () {
+                    var percent = eta_obj.msgs_left / eta_obj.msgs_total * 100;
+                    return percent.toFixed(2);
+                }
+            };
+            return eta_obj;
+        }
+    }
+
+    // 3. Kein Fortschritts-Muster gefunden → "unknown"
+    return {
+        str: "",
+        date: "?",
+        seconds_left: "?",
+        msgs_left: "?",
+        msgs_total: "?",
+        msgs_done: "?",
+        percent_done: function () { return ""; },
+        percent_left: function () { return ""; }
+    };
+};c
 
 var progress_bar_update = function progress_bar_update(eta_obj) {
     if (eta_obj.str.length) {
@@ -289,176 +359,136 @@ var refreshLog = function refreshLog(xhr) {
     var eta_obj;
     var eta_str;
 
+    if (!xhr) {
+        return;
+    }
+
+    // ETA aus dem aktuellen Response-Text holen
     eta_obj = extract_eta(xhr);
     progress_bar_update(eta_obj);
 
     if (xhr.readyState === 4) {
-        // end of sync
+        // Ende des Syncs
         $("#progress-txt").text(
             "Ended. It remains "
-            + eta_obj.msgs_left + " messages to be synced");
-
-        $("#output").text(xhr.responseText);
-    }
-    else {
+            + eta_obj.msgs_left + " messages to be synced"
+        );
+    } else {
         eta_str = eta_obj.str + " (refresh done every " + refresh_interval_s + " s)";
-        eta_str = eta_str.replace(/(\r\n|\n|\r)/gm, ""); // trim newlines
-        //$("#tests").append( "refreshLog  eta_str: " + eta_str + "\n" ) ;
+        eta_str = eta_str.replace(/(\r\n|\n|\r)/gm, ""); // Zeilenumbrüche trimmen
         $("#progress-txt").text(eta_str);
-        var last_lines = last_x_lines(xhr.responseText.slice(-2000), -10)
-        $("#output").text(last_lines);
     }
-}
+};
 
 
-var handleRun = function handleRun(xhr, timerRefreshLog, refresh_interval_ms) {
-    console.log(refresh_interval_ms);
-    const time = new Date();
+var handleRun = function handleRun(xhr) {
+    if (!xhr) {
+        return;
+    }
+
+    var time = new Date();
+
+    // XHR-Status in #console schreiben
     $("#console").text(
         "Status: " + xhr.status + " " + xhr.statusText + "\n"
         + "State: " + readyStateStr[xhr.readyState] + "\n"
         + "Time: " + time + "\n"
     );
-    if (xhr.readyState === 1) {
-          refreshLog(xhr);
-          setTimeout(function(){
-            handleRun(xhr, timerRefreshLog, refresh_interval_ms);
-        }, refresh_interval_ms);
-          
-    }
+
+    // Progress/ETA aktualisieren
+    refreshLog(xhr);
+
     if (xhr.readyState === 4) {
-        // var headers = xhr.getAllResponseHeaders();
-        // $("#console").append(headers);
-        // $("#console").append("See the completed log\n");
-        clearInterval(timerRefreshLog);
-        refreshLog(xhr); // a last time
-        // back to enable state for next run
+        // Request fertig → Buttons wieder sinnvoll setzen
         $("#bt-sync").prop("disabled", false);
+        $("#bt-abort").prop("disabled", true);
     }
-}
+};
 
-var imapsync = function imapsync()
-    {
-        var querystring = $("#form").serialize() ;
-        $("#abort").text("\n\n\n") ; // clean abort console
-        $("#output").text("Here comes the log!\n\n") ;
+var imapsync = function imapsync() {
+    var querystring = $("#form").serialize();
+    $("#abort").text("\n\n\n"); // clean abort console
 
-        if ( "imap.gmail.com" === $("#host1").val() )
-        {
-            querystring = querystring + "&gmail1=on" ;
-        }
-        if ( "imap.gmail.com" === $("#host2").val() )
-        {
-            querystring = querystring + "&gmail2=on" ;
-        }
-        // Same for "outlook.office365.com"
-        if ( "outlook.office365.com" === $("#host1").val() )
-        {
-            querystring = querystring + "&office1=on" ;
-        }
-        if ( "outlook.office365.com" === $("#host2").val() )
-        {
-            querystring = querystring + "&office2=on" ;
-        }
-        // Same for "export.imap.mail.yahoo.com"
-        if ( "export.imap.mail.yahoo.com" === $("#host1").val() )
-        {
-            querystring = querystring + "&yahoo1=on" ;
-        }
-        
-        // querystring = querystring + "&tmphash=" + tmphash(  ) ;
-        var xhr ;
-        xhr = new XMLHttpRequest() ;
-        var timerRefreshLog = setInterval(
-            function ()
-            {
-                refreshLog( xhr ) ;
-            }, refresh_interval_ms 
-        ) ;
+    var consoleEl = document.getElementById("console");
+    var outputEl  = document.getElementById("output");
 
-        xhr.onreadystatechange = function ()
-        {
-            handleRun( xhr, timerRefreshLog, refresh_interval_ms ) ;
-             console.log("onreadystatechange");
-        } ;
-        xhr.onprogress = function () {
-            handleRun(xhr, timerRefreshLog, refresh_interval_ms);
-            console.log("onprogress");
-        };
-        xhr.onload = function () {
-            handleRun(xhr, timerRefreshLog, refresh_interval_ms);
-            console.log("onload");
-        };
-        xhr.open( "POST", "/cgi-bin/imapsync", true ) ;
-        xhr.setRequestHeader( "Content-type",
-            "application/x-www-form-urlencoded" ) ;
-        xhr.send( querystring ) ;
+    // Startzustand
+    outputEl.textContent = "Here comes the log!\n\n";
+
+    // Zusätzliche Flags aus dem Original
+    if ("imap.gmail.com" === $("#host1").val()) {
+        querystring = querystring + "&gmail1=on";
+    }
+    if ("imap.gmail.com" === $("#host2").val()) {
+        querystring = querystring + "&gmail2=on";
+    }
+    if ("outlook.office365.com" === $("#host1").val()) {
+        querystring = querystring + "&office1=on";
+    }
+    if ("outlook.office365.com" === $("#host2").val()) {
+        querystring = querystring + "&office2=on";
+    }
+    if ("export.imap.mail.yahoo.com" === $("#host1").val()) {
+        querystring = querystring + "&yahoo1=on";
     }
 
+    // URL aus dem Formular (HTML: action="/cgi-bin/imapsync")
+    var url = $("#form").attr("action") || "/cgi-bin/imapsync";
 
-// var imapsync = function imapsync() {
-//     let url = form.action;
-//     var querystring = $("#form").serialize();
-//     const consoleEl = document.getElementById("output");
-//     consoleEl.textContent = "";
-//     $("#abort").text("\n\n\n"); // clean abort console
-//     $("#output").text("Here comes the log!\n\n");
+    var xhr = new XMLHttpRequest();
+    var lastLength = 0; // wie weit responseText schon verarbeitet wurde
 
-//     if ("imap.gmail.com" === $("#host1").val()) {
-//         querystring = querystring + "&gmail1=on";
-//     }
-//     if ("imap.gmail.com" === $("#host2").val()) {
-//         querystring = querystring + "&gmail2=on";
-//     }
-//     // Same for "outlook.office365.com"
-//     if ("outlook.office365.com" === $("#host1").val()) {
-//         querystring = querystring + "&office1=on";
-//     }
-//     if ("outlook.office365.com" === $("#host2").val()) {
-//         querystring = querystring + "&office2=on";
-//     }
-//     // Same for "export.imap.mail.yahoo.com"
-//     if ("export.imap.mail.yahoo.com" === $("#host1").val()) {
-//         querystring = querystring + "&yahoo1=on";
-//     }
-//     // querystring = querystring + "&tmphash=" + tmphash(  ) ;
+    // Hilfsfunktion: nur neue Chunks anhängen
+    var appendChunk = function () {
+        var full = xhr.responseText || "";
+        var chunk = full.substring(lastLength);
+        if (chunk.length > 0) {
+            lastLength = full.length;
+            outputEl.textContent += chunk;
+            // immer ans Ende scrollen
+            outputEl.scrollTop = outputEl.scrollHeight;
+        }
+    };
 
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader(
+        "Content-type",
+        "application/x-www-form-urlencoded"
+    );
 
-//     var xhr;
-//     xhr = new XMLHttpRequest();
-//     xhr.open("POST", url, true);
-//     let lastLength = 0;
-//     var timerRefreshLog = setInterval(
-//         function () {
-//             refreshLog(xhr);
-//         }, refresh_interval_ms);
+    // readyState-Änderung → Status + Progress
+    xhr.onreadystatechange = function () {
+        handleRun(xhr);
+    };
 
-//     xhr.onreadystatechange = function () {
-//         handleRun(xhr, timerRefreshLog);
-//     };
-//     xhr.onprogress = function () {
-//         handleRun(xhr, timerRefreshLog);
-//         const full = xhr.responseText;
-//         const chunk = full.substring(lastLength);
-//         lastLength = full.length;
+    // bei jeder neuen Datenportion
+    xhr.onprogress = function () {
+        appendChunk();  // neue Log-Zeilen nach #output
+        handleRun(xhr); // Fortschrittsbalken + #console updaten
+        console.log("onprogress");
+    };
 
-//         consoleEl.textContent += chunk;
-//         consoleEl.scrollTop = consoleEl.scrollHeight;
-//     };
+    // am Ende sicherstellen, dass auch der letzte Rest dran ist
+    xhr.onload = function () {
+        appendChunk();
+        handleRun(xhr);
+        console.log("onload");
+    };
 
-//     xhr.onload = function () {
-//         handleRun(xhr, timerRefreshLog);
-//         const full = xhr.responseText;
-//         const chunk = full.substring(lastLength);
-//         consoleEl.textContent += chunk;
-//         consoleEl.scrollTop = consoleEl.scrollHeight;
-//     };
+    xhr.onerror = function () {
+        var msg = "\n--- XHR Fehler ---\n" +
+                "readyState=" + xhr.readyState + "\n" +
+                "status=" + xhr.status + " " + xhr.statusText + "\n";
 
-//     xhr.onerror = function () {
-//         consoleEl.textContent += "\n--- XHR Fehler ---\n";
-//     };
-//     xhr.send(querystring);
-// }
+        outputEl.textContent += msg;
+
+        // Buttons wieder freigeben
+        $("#bt-sync").prop("disabled", false);
+        $("#bt-abort").prop("disabled", true);
+    };
+
+    xhr.send(querystring);
+};
 
 var handleAbort = function handleAbort(xhr) {
     const time = new Date();
