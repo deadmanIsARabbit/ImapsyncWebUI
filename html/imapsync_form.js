@@ -269,7 +269,6 @@ var extract_eta = function extract_eta(xhr) {
         };
     }
 
-    // wie bisher: nur den letzten Teil des Logs betrachten
     if (xhr.readyState === 4) {
         slice_length = -24000;
     } else {
@@ -278,7 +277,6 @@ var extract_eta = function extract_eta(xhr) {
 
     slice_log = xhr.responseText.slice(slice_length);
 
-    // 1. Versuch: originale ETA-Zeile (ETA: ... msgs left)
     var eta_re = /ETA:.*\n/g;
     var all_etas = slice_log.match(eta_re);
     if (all_etas && all_etas.length) {
@@ -289,7 +287,7 @@ var extract_eta = function extract_eta(xhr) {
         }
     }
 
-    // 2. Fallback: nur "NNN/TTT msgs left" ohne strengen ETA-Header
+
     var msgs_re = /(\d+)\s*\/\s*(\d+)\s+msgs\s+left/g;
     var m;
     var last = null;
@@ -301,10 +299,9 @@ var extract_eta = function extract_eta(xhr) {
         var left  = parseInt(last[1], 10);
         var total = parseInt(last[2], 10);
         if (!isFinite(left) || !isFinite(total) || total === 0) {
-            // zur Sicherheit: zurück auf "unknown"
         } else {
             eta_obj = {
-                // künstliche ETA-String-Repräsentation
+        
                 str: "ETA: ? ? s " + left + "/" + total + " msgs left\n",
                 date: "?",
                 seconds_left: "?",
@@ -327,7 +324,6 @@ var extract_eta = function extract_eta(xhr) {
         }
     }
 
-    // 3. Kein Fortschritts-Muster gefunden → "unknown"
     return {
         str: "",
         date: "?",
@@ -363,19 +359,17 @@ var refreshLog = function refreshLog(xhr) {
         return;
     }
 
-    // ETA aus dem aktuellen Response-Text holen
     eta_obj = extract_eta(xhr);
     progress_bar_update(eta_obj);
 
     if (xhr.readyState === 4) {
-        // Ende des Syncs
         $("#progress-txt").text(
             "Ended. It remains "
             + eta_obj.msgs_left + " messages to be synced"
         );
     } else {
         eta_str = eta_obj.str + " (refresh done every " + refresh_interval_s + " s)";
-        eta_str = eta_str.replace(/(\r\n|\n|\r)/gm, ""); // Zeilenumbrüche trimmen
+        eta_str = eta_str.replace(/(\r\n|\n|\r)/gm, ""); 
         $("#progress-txt").text(eta_str);
     }
 };
@@ -388,18 +382,18 @@ var handleRun = function handleRun(xhr) {
 
     var time = new Date();
 
-    // XHR-Status in #console schreiben
+    // XHR-Status to #console
     $("#console").append(
         "Status: " + xhr.status + " " + xhr.statusText + "\n"
         + "State: " + readyStateStr[xhr.readyState] + "\n"
         + "Time: " + time + "\n\n"
     );
 
-    // Progress/ETA aktualisieren
+    // Progress/ETA
     refreshLog(xhr);
 
     if (xhr.readyState === 4) {
-        // Request fertig → Buttons wieder sinnvoll setzen
+    
         $("#bt-sync").prop("disabled", false);
         $("#bt-abort").prop("disabled", true);
     }
@@ -407,16 +401,15 @@ var handleRun = function handleRun(xhr) {
 
 var imapsync = function imapsync() {
     var querystring = $("#form").serialize();
-    //console.log(querystring);
     $("#abort").text("\n\n\n"); // clean abort console
 
     var consoleEl = document.getElementById("console");
     var outputEl  = document.getElementById("output");
 
-    // Startzustand
+
     outputEl.textContent = "Here comes the log!\n\n";
 
-    // Zusätzliche Flags aus dem Original
+
     if ("imap.gmail.com" === $("#host1").val()) {
         querystring = querystring + "&gmail1=on";
     }
@@ -433,20 +426,20 @@ var imapsync = function imapsync() {
         querystring = querystring + "&yahoo1=on";
     }
 
-    // URL aus dem Formular (HTML: action="/cgi-bin/imapsync")
+
     var url = $("#form").attr("action") || "/cgi-bin/imapsync";
 
     var xhr = new XMLHttpRequest();
-    var lastLength = 0; // wie weit responseText schon verarbeitet wurde
+    var lastLength = 0;
 
-    // Hilfsfunktion: nur neue Chunks anhängen
+    
     var appendChunk = function () {
         var full = xhr.responseText || "";
         var chunk = full.substring(lastLength);
         if (chunk.length > 0) {
             lastLength = full.length;
             outputEl.textContent += chunk;
-            // immer ans Ende scrollen
+
             outputEl.scrollTop = outputEl.scrollHeight;
         }
     };
@@ -457,23 +450,19 @@ var imapsync = function imapsync() {
         "application/x-www-form-urlencoded"
     );
 
-    // readyState-Änderung → Status + Progress
     xhr.onreadystatechange = function () {
         handleRun(xhr);
     };
 
-    // bei jeder neuen Datenportion
+
     xhr.onprogress = function () {
-        appendChunk();  // neue Log-Zeilen nach #output
-        handleRun(xhr); // Fortschrittsbalken + #console updaten
-        console.log("onprogress");
+        appendChunk(); 
+        handleRun(xhr);
     };
 
-    // am Ende sicherstellen, dass auch der letzte Rest dran ist
     xhr.onload = function () {
         appendChunk();
         handleRun(xhr);
-        console.log("onload");
     };
 
     xhr.onerror = function () {
@@ -483,7 +472,6 @@ var imapsync = function imapsync() {
 
         outputEl.textContent += msg;
 
-        // Buttons wieder freigeben
         $("#bt-sync").prop("disabled", false);
         $("#bt-abort").prop("disabled", true);
     };
@@ -520,13 +508,11 @@ var abort = function abort() {
 
 var store = function store(id) {
     var stored;
-    //$( "#tests" ).append( "Eco: " + id + " type is " + $( id ).attr( "type" ) + "\n" ) ;
     if ("text" === $(id).attr("type") || "password" === $(id).attr("type")) {
         localStorage.setItem(id, $(id).val());
         stored = $(id).val();
     }
     else if ("checkbox" === $(id).attr("type")) {
-        //$( "#tests" ).append( "Eco: " + id + " checked is " + $( id )[0].checked + "\n" ) ;
         localStorage.setItem(id, $(id)[0].checked);
         stored = $(id)[0].checked;
     }
@@ -535,13 +521,12 @@ var store = function store(id) {
 
 var retrieve = function retrieve(id) {
     var retrieved;
-    //$( "#tests" ).append( "Eco: " + id + " type is " + $( id ).attr( "type" ) + " length is " + $( id ).length + "\n" ) ;
     if ("text" === $(id).attr("type") || "password" === $(id).attr("type")) {
         $(id).val(localStorage.getItem(id));
         retrieved = $(id).val();
     }
     else if ("checkbox" === $(id).attr("type")) {
-        //$( "#tests" ).append( "Eco: " + id + " getItem is " + localStorage.getItem( id ) + "\n" ) ;
+
         $(id)[0].checked = JSON.parse(localStorage.getItem(id));
         retrieved = $(id)[0].checked;
     }
@@ -737,7 +722,6 @@ var init = function init() {
 
 
     $("#showpassword2").on('click', function (event) {
-        //$("#tests").append( "\nthat1=" + JSON.stringify( event.target, undefined, 4 ) ) ;
         var button = event.target;
         showpassword("password2", button);
     }
