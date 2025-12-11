@@ -55,6 +55,7 @@ RUN set -xe &&                  \
 ENV LIGHTHTTPD_RUN_USER www-data
 ENV LIGHTHTTPD_RUN_GROUP www-data
 
+RUN echo "server.stream-response-body = 1" >> /etc/lighttpd/lighttpd.conf
 RUN lighty-enable-mod cgi
 RUN service lighttpd force-reload
 
