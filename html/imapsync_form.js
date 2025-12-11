@@ -338,7 +338,7 @@ var extract_eta = function extract_eta(xhr) {
         percent_done: function () { return ""; },
         percent_left: function () { return ""; }
     };
-};c
+};
 
 var progress_bar_update = function progress_bar_update(eta_obj) {
     if (eta_obj.str.length) {
@@ -389,10 +389,10 @@ var handleRun = function handleRun(xhr) {
     var time = new Date();
 
     // XHR-Status in #console schreiben
-    $("#console").text(
+    $("#console").append(
         "Status: " + xhr.status + " " + xhr.statusText + "\n"
         + "State: " + readyStateStr[xhr.readyState] + "\n"
-        + "Time: " + time + "\n"
+        + "Time: " + time + "\n\n"
     );
 
     // Progress/ETA aktualisieren
@@ -407,6 +407,7 @@ var handleRun = function handleRun(xhr) {
 
 var imapsync = function imapsync() {
     var querystring = $("#form").serialize();
+    //console.log(querystring);
     $("#abort").text("\n\n\n"); // clean abort console
 
     var consoleEl = document.getElementById("console");
